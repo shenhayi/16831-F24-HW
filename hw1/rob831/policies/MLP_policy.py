@@ -105,7 +105,7 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # `torch.distributions.Distribution` object. It's up to you!
     def forward(self, observation: torch.FloatTensor) -> Any:
         # raise NotImplementedError
-        return self.netowrk(observation)
+        return self.mean_net(observation)
 
 
 #####################################################
