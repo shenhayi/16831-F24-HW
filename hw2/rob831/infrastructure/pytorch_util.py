@@ -49,7 +49,17 @@ def build_mlp(
         output_activation = _str_to_activation[output_activation]
     
     # TODO: get this from hw1
-    raise NotImplementedError
+    layers = []
+    for i in range(n_layers):
+        if i == 0:
+            layers.append(nn.Linear(input_size, size))
+        else:
+            layers.append(nn.Linear(size, size))
+        layers.append(activation)
+    layers.append(nn.Linear(size, output_size))
+    layers.append(output_activation)
+
+    return nn.Sequential(*layers)
 
 
 device = None
