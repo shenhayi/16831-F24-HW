@@ -180,9 +180,7 @@ class MLPPolicyPG(MLPPolicy):
                 ## ptu.from_numpy before using it in the loss
             # raise NotImplementedError
             q_values = ptu.from_numpy(q_values)
-            normalized_q_values = (q_values - q_values.mean()) / (q_values.std() + 1e-8)
-            
-            # Compute baseline loss
+            normalized_q_values = normalize(q_values, q_values.mean(), q_values.std() , 1e-8)
             baseline_predictions = self.baseline(observations).squeeze()
             baseline_loss = self.baseline_loss_fn(baseline_predictions, normalized_q_values)
             
