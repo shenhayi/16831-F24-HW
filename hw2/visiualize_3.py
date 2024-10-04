@@ -4,17 +4,21 @@ import os
 
 # List of JSON files to read
 json_file_paths = [
-    '/home/haoyus/16831/16831-F24-HW/hw2/result/json/q2_b1000_r5e_2_InvertedPendulum-v4_02-10-2024_22-14-37.json'  
+    '/home/haoyus/16831/16831-F24-HW/hw2/result/json/q1_lb_no_rtg_dsa_CartPole-v0_02-10-2024_00-06-38.json',
+    '/home/haoyus/16831/16831-F24-HW/hw2/result/json/q1_lb_rtg_dsa_CartPole-v0_02-10-2024_00-11-12.json',
+    '/home/haoyus/16831/16831-F24-HW/hw2/result/json/q1_lb_rtg_na_CartPole-v0_02-10-2024_00-15-38.json'
 ]
 
 # Optional: Labels for each dataset (adjust as needed)
 labels = [
-    'Run 1 b 1000 lr 5e-2'
+    'Run 1 no rtg+dsa',
+    'Run 2 rtg+dsa',
+    'Run 3 rtg+na'
 ]
 
 # Colors or line styles for each dataset (optional)
-line_styles = ['-']
-colors = ['red']
+line_styles = ['-', '--', '-.']
+colors = ['blue', 'green', 'red']
 
 # Initialize the plot
 plt.figure(figsize=(12, 8))
@@ -76,11 +80,11 @@ for idx, json_file_path in enumerate(json_file_paths):
 # Set plot parameters
 plt.xlabel('Iteration')
 plt.ylabel('Average Return')
-plt.title('InvertedPendulum')
+plt.title('Cartpole Large Batch')
 plt.grid(True)
 plt.legend()
 plt.xlim(0, 100)
-plt.ylim(-100, 1100)
+plt.ylim(0, 300)
 plt.tight_layout()
 
 # Show the plot
