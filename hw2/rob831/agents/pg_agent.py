@@ -81,67 +81,71 @@ class PGAgent(BaseAgent):
         # HINT3: q_values should be a 1D numpy array where the indices correspond to the same
         # ordering as observations, actions, etc.
 
-        q_values = []
         if not self.reward_to_go:
-            # Use the whole trajectory for each timestep
-            for rewards in rewards_list:
-                discounted_return = self._discounted_return(rewards)
-                q_values.extend([discounted_return] * len(rewards))
+            q_values = np.concatenate([self._discounted_return(rewards) for rewards in rewards_list])
+
+        # Case 2: reward-to-go PG
+        # Estimate Q^{pi}(s_t, a_t) by the discounted sum of rewards starting from t
         else:
-            # Use reward-to-go for each timestep
-            for rewards in rewards_list:
-                discounted_cumsums = self._discounted_cumsum(rewards)
-                q_values.extend(discounted_cumsums)
-        
-        return np.array(q_values)
+            q_values = np.concatenate([self._discounted_cumsum(rewards) for rewards in rewards_list])
+
+        return q_values  # return an array
 
     def estimate_advantage(self, obs, rewards_list, q_values, terminals):
 
         """
             Computes advantages by (possibly) using GAE, or subtracting a baseline from the estimated Q values
         """
-
         # Estimate the advantage when nn_baseline is True,
-        # by querying the neural network that you're using to learn the value function
+        # by querying the neural network that you're using to learn the value function  
         if self.nn_baseline:
-            # Predict the baseline values using the actor's value function
             values_normalized = self.actor.run_baseline_prediction(obs)
             assert values_normalized.ndim == q_values.ndim
 
-            # Unnormalize the value predictions
-            values = unnormalize(values_normalized, q_values)
+            values = unnormalize(values_normalized, np.mean(q_values), np.std(q_values))
 
             if self.gae_lambda is not None:
-                # Initialize advantages array with an extra element for the dummy value
+                ## append a dummy T+1 value for simpler recursive calculation
                 values = np.append(values, [0])
+
+                ## combine rews_list into a single array
                 rewards = np.concatenate(rewards_list)
-                batch_size = len(rewards)
+
+                ## create empty numpy array to populate with GAE advantage
+                ## estimates, with dummy T+1 value for simpler recursive calculation
+                batch_size = obs.shape[0]
                 advantages = np.zeros(batch_size + 1)
 
                 for i in reversed(range(batch_size)):
+                    ## TODO: recursively compute advantage estimates starting from
+                        ## timestep T.
+                    ## HINT 1: use terminals to handle edge cases. terminals[i]
+                        ## is 1 if the state is the last in its trajectory, and
+                        ## 0 otherwise.
+                    ## HINT 2: self.gae_lambda is the lambda value in the
+                        ## GAE formula
                     if terminals[i]:
                         delta = rewards[i] - values[i]
                         advantages[i] = delta
                     else:
-                        delta = rewards[i] + self.gamma * values[i + 1] - values[i]
-                        advantages[i] = delta + self.gamma * self.gae_lambda * advantages[i + 1]
-                
-                # Remove the dummy advantage
+                        delta = rewards[i] + self.gamma * values[i+1] - values[i]                        
+                        advantages[i] = delta + self.gamma * self.gae_lambda * advantages[i+1]
+
+                # remove dummy advantage
                 advantages = advantages[:-1]
+
             else:
-                # Compute advantages as Q-values minus baseline values
+                ## TODO: compute advantage estimates using q_values, and values as baselines
+                # raise NotImplementedError
                 advantages = q_values - values
 
-            # Update the baseline by fitting to Q-values
-            self.actor.fit_baseline(obs, q_values)
-
+        # Else, just set the advantage to [Q]
         else:
-            # If no baseline, the advantage is just the Q-values
             advantages = q_values.copy()
 
-        # Normalize the advantages if required
+        # Normalize the resulting advantages
         if self.standardize_advantages:
-            advantages = (advantages - np.mean(advantages)) / (np.std(advantages) + 1e-8)
+            advantages = normalize(advantages, np.mean(advantages), np.std(advantages))
 
         return advantages
 
@@ -168,9 +172,12 @@ class PGAgent(BaseAgent):
         """
 
         # TODO: create discounted_returns
-        discounted_returns = 0
-        for t, r in enumerate(rewards):
-            discounted_returns += (self.gamma ** t) * r
+        n = len(rewards)
+        discounts = np.power(self.gamma, np.arange(n))
+        rewards = np.array(rewards)
+        total_discounted_return = np.sum(rewards * discounts)
+        
+        discounted_returns = np.full(n, total_discounted_return)
         return discounted_returns
 
     def _discounted_cumsum(self, rewards):

@@ -158,16 +158,12 @@ class MLPPolicyPG(MLPPolicy):
             # 'zero_grad' first
 
         # raise NotImplementedError
-        # Compute the policy loss
-        distribution = self.forward(observations)  # Assuming forward returns a distribution
-        log_probs = distribution.log_prob(actions)
-        policy_loss = -(log_probs * advantages).sum()  # Negate to minimize the loss
-        
-        # Perform policy update
         self.optimizer.zero_grad()
+        action_distribution = self(observations)
+        log_probs = action_distribution.log_prob(actions)
+        policy_loss = -(log_probs * advantages).mean()
         policy_loss.backward()
         self.optimizer.step()
-        
 
         if self.nn_baseline:
             ## TODO: update the neural network baseline using the q_values as
@@ -179,13 +175,12 @@ class MLPPolicyPG(MLPPolicy):
             ## HINT2: You will need to convert the targets into a tensor using
                 ## ptu.from_numpy before using it in the loss
             # raise NotImplementedError
+            # Convert q_values to a tensor on the correct device
+            q_values = normalize(q_values, np.mean(q_values), np.std(q_values))
             q_values = ptu.from_numpy(q_values)
-            normalized_q_values = normalize(q_values, q_values.mean(), q_values.std() , 1e-8)
-            baseline_predictions = self.baseline(observations).squeeze()
-            baseline_loss = self.baseline_loss_fn(baseline_predictions, normalized_q_values)
-            
-            # Perform baseline update
             self.baseline_optimizer.zero_grad()
+            baseline_predictions = self.baseline(observations).squeeze()
+            baseline_loss = self.baseline_loss(baseline_predictions, q_values)
             baseline_loss.backward()
             self.baseline_optimizer.step()
 
