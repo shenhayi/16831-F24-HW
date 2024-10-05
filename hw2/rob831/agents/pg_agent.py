@@ -105,16 +105,11 @@ class PGAgent(BaseAgent):
             values = unnormalize(values_normalized, np.mean(q_values), np.std(q_values))
 
             if self.gae_lambda is not None:
-                ## append a dummy T+1 value for simpler recursive calculation
                 values = np.append(values, [0])
-
-                ## combine rews_list into a single array
                 rewards = np.concatenate(rewards_list)
-
-                ## create empty numpy array to populate with GAE advantage
-                ## estimates, with dummy T+1 value for simpler recursive calculation
                 batch_size = obs.shape[0]
                 advantages = np.zeros(batch_size + 1)
+
 
                 for i in reversed(range(batch_size)):
                     ## TODO: recursively compute advantage estimates starting from
@@ -124,26 +119,15 @@ class PGAgent(BaseAgent):
                         ## 0 otherwise.
                     ## HINT 2: self.gae_lambda is the lambda value in the
                         ## GAE formula
-                    if terminals[i]:
-                        delta = rewards[i] - values[i]
-                        advantages[i] = delta
-                    else:
-                        delta = rewards[i] + self.gamma * values[i+1] - values[i]                        
-                        advantages[i] = delta + self.gamma * self.gae_lambda * advantages[i+1]
+                    delta = rewards[i] - values[i] if terminals[i] else rewards[i] + self.gamma * values[i+1] - values[i]
+                    advantages[i] = delta if terminals[i] else delta + self.gamma * self.gae_lambda * advantages[i+1]
 
-                # remove dummy advantage
                 advantages = advantages[:-1]
-
             else:
-                ## TODO: compute advantage estimates using q_values, and values as baselines
-                # raise NotImplementedError
                 advantages = q_values - values
-
-        # Else, just set the advantage to [Q]
         else:
             advantages = q_values.copy()
 
-        # Normalize the resulting advantages
         if self.standardize_advantages:
             advantages = normalize(advantages, np.mean(advantages), np.std(advantages))
 
@@ -173,11 +157,12 @@ class PGAgent(BaseAgent):
 
         # TODO: create discounted_returns
         n = len(rewards)
-        discounts = np.power(self.gamma, np.arange(n))
         rewards = np.array(rewards)
-        total_discounted_return = np.sum(rewards * discounts)
-        
-        discounted_returns = np.full(n, total_discounted_return)
+        discounts = np.power(self.gamma, np.arange(n))
+
+        total_discounted_return = np.dot(rewards, discounts)
+
+        discounted_returns = np.full_like(rewards, total_discounted_return)
         return discounted_returns
 
     def _discounted_cumsum(self, rewards):
