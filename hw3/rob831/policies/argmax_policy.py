@@ -1,4 +1,5 @@
 import numpy as np
+from rob831.infrastructure import pytorch_util as ptu
 
 
 class ArgMaxPolicy(object):
@@ -14,4 +15,6 @@ class ArgMaxPolicy(object):
         
         ## TODO return the action that maxinmizes the Q-value 
         # at the current observation as the output
+        q_values = self.critic.q_net(ptu.from_numpy(observation))
+        action = np.argmax(ptu.to_numpy(q_values), axis=1)
         return action.squeeze()
