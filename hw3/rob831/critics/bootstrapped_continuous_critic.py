@@ -91,17 +91,15 @@ class BootstrappedContinuousCritic(nn.Module, BaseCritic):
         next_ob_no = ptu.from_numpy(next_ob_no)
         reward_n = ptu.from_numpy(reward_n)
         terminal_n = ptu.from_numpy(terminal_n)
-        total_steps = self.num_grad_steps_per_target_update * self.num_target_updates
-        for step in range(total_steps):
-            if step % self.num_grad_steps_per_target_update == 0:
-                with torch.no_grad():
-                    v_s_next = self.forward(next_ob_no)
-                    not_done = 1 - terminal_n 
-                    target_n = reward_n + self.gamma * v_s_next * not_done
-            v_s = self.forward(ob_no)
-            loss = self.loss(v_s, target_n)
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
+        
+        
+        for _ in range(self.num_target_updates):
+            for _ in range(self.num_grad_steps_per_target_update):
+                target_values = reward_n + self.gamma * self.forward(next_ob_no) * (1 - terminal_n)
+                # target_values = target_values.detach()
+                loss = self.loss(self.forward(ob_no), target_values)
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
 
         return loss.item()

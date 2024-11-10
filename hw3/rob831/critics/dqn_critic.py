@@ -77,7 +77,7 @@ class DQNCritic(BaseCritic):
             # and page 4 of https://arxiv.org/pdf/1509.06461.pdf is also a good reference.
             qa_tp1_online = self.q_net(next_ob_no)
             best_actions = qa_tp1_online.argmax(dim=1)
-            q_tp1 = qa_tp1_online.gather(1, best_actions.unsqueeze(1)).squeeze(1)
+            q_tp1 = qa_tp1_values[range(qa_tp1_values.shape[0]), best_actions]
         else:
             q_tp1, _ = qa_tp1_values.max(dim=1)
 

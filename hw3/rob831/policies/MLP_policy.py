@@ -132,11 +132,13 @@ class MLPPolicyAC(MLPPolicy):
         actions = ptu.from_numpy(actions)
         advantages = ptu.from_numpy(adv_n)
 
-        self.optimizer.zero_grad()
         action_distribution = self.forward(observations)
-        log_prob = action_distribution.log_prob(actions)
-        loss = -torch.mean(log_prob * advantages)
+        if adv_n is not None:
+            loss = -torch.mean(action_distribution.log_prob(actions) * advantages)
+        else:
+            loss = -torch.mean(action_distribution.log_prob(actions))
 
+        self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
