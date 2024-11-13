@@ -86,9 +86,9 @@ class MPCPolicy(BasePolicy):
             fin_rewards = self.evaluate_candidate_sequences(elite_sequences, obs)
             best_index = fin_rewards.argmax()
             best_act_seq = elite_sequences[best_index]
-            cem_action = best_act_seq[0]
+            cem_action = best_act_seq[None, :, :]
 
-            return cem_action[None]
+            return cem_action
         else:
             raise Exception(f"Invalid sample_strategy: {self.sample_strategy}")
 
